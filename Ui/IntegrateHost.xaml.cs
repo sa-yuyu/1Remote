@@ -8,20 +8,24 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Forms;
-using _1RM.Model;
-using _1RM.Model.Protocol;
-using _1RM.Model.Protocol.Base;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Timers;
 using Shawn.Utils;
-using Shawn.Utils.Wpf;
-using Stylet;
-using Path = System.IO.Path;
 using Timer = System.Timers.Timer;
+
 
 /*
  * Note:
 
-We should add <UseWindowsForms>true</UseWindowsForms> in the csproj.
+You should add <UseWindowsForms>true</UseWindowsForms> in your csproj.
 
 <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -33,9 +37,9 @@ We should add <UseWindowsForms>true</UseWindowsForms> in the csproj.
 
  */
 
-namespace _1RM.View.Host.ProtocolHosts
+namespace IntegrateContainer
 {
-    public partial class IntegrateHost : HostBase, IDisposable
+    public partial class IntegrateHost : System.Windows.Controls.UserControl
     {
         #region API
 
@@ -172,41 +176,16 @@ namespace _1RM.View.Host.ProtocolHosts
         }
 
         #endregion
-
         private Timer? _timer;
         private Process? _process;
         private readonly System.Windows.Forms.Panel _panel;
         private readonly HashSet<IntPtr> _exeHandles = new HashSet<IntPtr>();
-        public string ExeFullName { get; set; }= "";
+        public string ExeFullName { get; set; } = "";
         public string ExeArguments { get; set; } = "";
         private readonly Dictionary<string, string> _environmentVariables = new Dictionary<string, string>();
 
-        public static IntegrateHost Create(ProtocolBase protocol, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null)
+        public IntegrateHost()
         {
-            IntegrateHost? view = null;
-            Execute.OnUIThreadSync(() =>
-            {
-                view = new IntegrateHost(protocol, exeFullName, exeArguments, environmentVariables);
-            });
-            return view!;
-        }
-
-        public IntegrateHost() : base(new SSH(){ Address = "172.20.65.78", Port = "22", UserName = "root", Password = "root"})
-        {
-            _panel = new System.Windows.Forms.Panel
-            {
-                BackColor = System.Drawing.Color.Transparent,
-                Dock = System.Windows.Forms.DockStyle.Fill,
-                BorderStyle = BorderStyle.None
-            };
-            _panel.SizeChanged += PanelOnSizeChanged;
-        }
-
-        private IntegrateHost(ProtocolBase protocol, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null) : base(protocol, false)
-        {
-            ExeFullName = exeFullName;
-            ExeArguments = exeArguments;
-            _environmentVariables = environmentVariables ?? new Dictionary<string, string>();
             InitializeComponent();
 
             _panel = new System.Windows.Forms.Panel
@@ -221,7 +200,22 @@ namespace _1RM.View.Host.ProtocolHosts
         }
 
         #region Resize
+        private void PanelOnSizeChanged(object? sender, EventArgs e)
+        {
+            SetToPanelSize();
+        }
+        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+        {
+            this.InvalidateVisual();
+            base.OnRenderSizeChanged(sizeInfo);
+        }
+        #endregion
 
+
+
+
+        //static int ox = 3;
+        //static int oy = 3;
         //static int ot = 0;
         private void SetToPanelSize()
         {
@@ -252,52 +246,18 @@ namespace _1RM.View.Host.ProtocolHosts
             }
         }
 
-        // not work with UHD + scaling, e.g. 4k+150%, the ActualWidth will return 1500 / 150% = 1000pix while the real width is 1500pix.
-        //protected override void OnRender(DrawingContext drawingContext)
-        //{
-        //    if (_process != null)
-        //    {
-        //        CleanupClosedHandle();
-        //        SimpleLogHelper.Debug($"ActualWidth = {(int)(FormsHost.ActualWidth)}, ActualHeight = {(int)(FormsHost.ActualHeight)}");
-        //        SimpleLogHelper.Debug($"GridActualWidth = {(int)(Grid.ActualWidth)}, GridActualHeight = {(int)(Grid.ActualHeight)}");
-        //        foreach (var exeHandle in _exeHandles)
-        //        {
-        //            MoveWindow(exeHandle, 0, 0, (int)(Grid.ActualWidth), (int)(Grid.ActualHeight), true);
-        //        }
-        //        //MoveWindow(_exeHandle, 0, 0, (int)(FormsHost.ActualWidth), (int)(FormsHost.ActualHeight), true);
-        //    }
-        //    base.OnRender(drawingContext);
-        //}
-
-        private void PanelOnSizeChanged(object? sender, EventArgs e)
-        {
-            SetToPanelSize();
-        }
-        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
-        {
-            this.InvalidateVisual();
-            base.OnRenderSizeChanged(sizeInfo);
-        }
-        #endregion
-
-        /// <summary>
-        /// remove the handles in _exeHandles which is not  window
-        /// </summary>
         private void CleanupClosedHandle()
         {
             foreach (var handle in _exeHandles.ToArray())
             {
                 if (IsWindow(handle) == false)
                 {
-                    SimpleLogHelper.Debug($"_exeHandles remove {handle}");
+                    Console.WriteLine($"_exeHandles remove {handle}");
                     _exeHandles.Remove(handle);
                 }
             }
         }
 
-        /// <summary>
-        /// remove title border frame scroll of the process
-        /// </summary>
         private void SetExeWindowStyle()
         {
             CleanupClosedHandle();
@@ -320,68 +280,12 @@ namespace _1RM.View.Host.ProtocolHosts
             });
         }
 
-        public override void Conn()
-        {
-            Status = ProtocolHostStatus.Connecting;
-            Debug.Assert(ParentWindow != null);
-            var tsk = new Task(Start);
-            tsk.Start();
-        }
-
-        public override void ReConn()
-        {
-            CloseIntegrate();
-            Conn();
-        }
-
-        public override void Close()
-        {
-            Dispose();
-            base.Close();
-        }
-
-        public void Dispose()
-        {
-            Execute.OnUIThread(() =>
-            {
-                CloseIntegrate();
-                _timer?.Dispose();
-                _process?.Dispose();
-                _panel.Dispose();
-                FormsHost?.Dispose();
-                GC.SuppressFinalize(this);
-            });
-        }
-
-        private void CloseIntegrate()
-        {
-            Execute.OnUIThread(() =>
-            {
-                _timer?.Stop();
-                _timer?.Dispose();
-                _timer = null;
-                if (_process != null)
-                {
-                    try
-                    {
-                        _process.Exited -= ProcessOnExited;
-                        _process.Kill();
-                    }
-                    catch (Exception)
-                    {
-                        // ignored
-                    }
-                }
-
-                Status = ProtocolHostStatus.Disconnected;
-            });
-        }
 
         public void Start()
         {
             if (File.Exists(ExeFullName) == false) return;
 
-            RunBeforeConnect?.Invoke();
+            //RunBeforeConnect?.Invoke();
             var exeFullName = ExeFullName;
 
             var startInfo = new ProcessStartInfo
@@ -414,11 +318,11 @@ namespace _1RM.View.Host.ProtocolHosts
 
             SimpleLogHelper.Debug($"{nameof(IntegrateHost)}: Start process {exeFullName}");
 
-            Task.Factory.StartNew(() =>
-            {
-                Thread.Sleep(1 * 1000);
-                RunAfterConnected?.Invoke();
-            });
+            //Task.Factory.StartNew(() =>
+            //{
+            //    Thread.Sleep(1 * 1000);
+            //    RunAfterConnected?.Invoke();
+            //});
 
             // keep detect MainWindowHandle in next 10 seconds.
             var endTime = DateTime.Now.AddSeconds(10);
@@ -448,36 +352,22 @@ namespace _1RM.View.Host.ProtocolHosts
 
         private void ProcessOnExited(object? sender, EventArgs e)
         {
+            Console.WriteLine($"ProcessOnExited");
             Dispatcher.Invoke(() =>
             {
-                _timer?.Stop();
-                _timer?.Dispose();
-                _timer = null;
                 _process = null;
+                _timer?.Dispose();
                 FormsHost.Visibility = Visibility.Collapsed;
             });
-            _process = null;
-            Close();
         }
 
-        public override void FocusOnMe()
+        public void Close()
         {
-            SetForegroundWindow(this.GetHostHwnd());
+            Dispatcher.Invoke(() =>
+            {
+                _timer?.Dispose();
+                _process?.Kill(true);
+            });
         }
-
-        public override ProtocolHostType GetProtocolHostType()
-        {
-            return ProtocolHostType.Integrate;
-        }
-
-        public override IntPtr GetHostHwnd()
-        {
-            if (_exeHandles.Count > 0)
-                return _exeHandles.Last();
-            return _process?.MainWindowHandle ?? IntPtr.Zero;
-        }
-
-        public Action? RunBeforeConnect { get; set; }
-        public Action? RunAfterConnected { get; set; }
     }
 }
