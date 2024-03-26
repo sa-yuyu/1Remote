@@ -169,10 +169,10 @@ namespace _1RM.View.Host.ProtocolHosts
             Conn();
         }
 
-        public override void Close()
+        public override void CloseConn()
         {
             Dispose();
-            base.Close();
+            base.CloseConn();
         }
 
         public void ShowWindow(bool isShow)
@@ -301,7 +301,7 @@ namespace _1RM.View.Host.ProtocolHosts
                 FormsHost.Visibility = Visibility.Collapsed;
             });
             _process = null;
-            Close();
+            CloseConn();
         }
 
         public override void FocusOnMe()
