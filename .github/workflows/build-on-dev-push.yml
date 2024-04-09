@@ -101,7 +101,7 @@ jobs:
 
       # Publish the application Net6.0
       - name: Publish the application
-        run: dotnet publish $env:Main_Project -p:PublishProfile=./Ui/Properties/PublishProfiles/x64-single.file.application.pubxml
+        run: dotnet publish $env:Main_Project -p:PublishProfile=./Ui/Properties/PublishProfiles/x64-single.file.application.pubxml --self-contained true
       # artifact
       - uses: actions/upload-artifact@v3
         with:
