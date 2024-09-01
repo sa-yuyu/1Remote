@@ -1,19 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using AxMSTSCLib;
 using MSTSCLib;
 using _1RM.Model.Protocol;
-using _1RM.Service;
 using _1RM.Service.Locality;
 using _1RM.Utils;
 using Shawn.Utils;
-using Shawn.Utils.Interface;
 using Shawn.Utils.Wpf;
 using Shawn.Utils.Wpf.Controls;
 using Stylet;
@@ -217,10 +212,7 @@ namespace _1RM.View.Host.ProtocolHosts
                 {
                     // full-all-screen session switch to TabWindow, and click "Reconn" button, will entry this case.
                     _rdpClient!.FullScreen = false;
-                    if (_rdpSettings.IsTmpSession() == false)
-                    {
-                        LocalityConnectRecorder.RdpCacheUpdate(_rdpSettings.Id, false);
-                    }
+                    LocalityConnectRecorder.RdpCacheUpdate(_rdpSettings.Id, false);
                     return;
                 }
             }
@@ -273,10 +265,7 @@ namespace _1RM.View.Host.ProtocolHosts
 
             // !do not remove
             ParentWindowSetToWindow();
-            if (_rdpSettings.IsTmpSession() == false)
-            {
-                LocalityConnectRecorder.RdpCacheUpdate(_rdpSettings.Id, false);
-            }
+            LocalityConnectRecorder.RdpCacheUpdate(_rdpSettings.Id, false);
             base.OnFullScreen2Window?.Invoke(base.ConnectionId);
         }
 

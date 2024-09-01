@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows;
 using _1RM.Model.Protocol;
 using _1RM.Model.Protocol.Base;
@@ -9,6 +10,7 @@ using _1RM.Service;
 using _1RM.Utils;
 using _1RM.View;
 using Shawn.Utils.Interface;
+using Shawn.Utils.Wpf.FileSystem;
 
 namespace _1RM.Model;
 
@@ -156,9 +158,7 @@ public static class ProtocolActionHelper
         {
             actions.Add(new ProtocolAction(IoC.Translate("Open SFTP"), () =>
             {
-                var protocolClone = ssh.Clone();
                 // open SFTP when SSH is connected.
-                var tmpRunner = ProtocolHelper.GetRunner(IoC.Get<ProtocolConfigurationService>(), protocolClone, SFTP.ProtocolName);
                 var sftp = new SFTP
                 {
                     ColorHex = ssh.ColorHex,
@@ -170,7 +170,19 @@ public static class ProtocolActionHelper
                     Password = ssh.Password,
                     PrivateKey = ssh.PrivateKey
                 };
-                IoC.Get<SessionControlService>().ConnectWithTab(sftp, tmpRunner, "");
+                GlobalEventHelper.OnRequestServerConnect?.Invoke(sftp, fromView: $"{nameof(LauncherWindowView)} - Action - Open SFTP", assignTabToken: DateTime.Now.Ticks.ToString());
+            }));
+        }
+
+
+        if (server is RDP rdp)
+        {
+            actions.Add(new ProtocolAction(IoC.Translate("Export") + " *.rdp", () =>
+            {
+                var path = SelectFileHelper.SaveFile(filter: "rdp|*.rdp", selectedFileName: rdp.DisplayName + ".rdp");
+                if (string.IsNullOrEmpty(path)) return;
+                var text = rdp.ToRdpConfig().ToString();
+                File.WriteAllText(path, text);
             }));
         }
 

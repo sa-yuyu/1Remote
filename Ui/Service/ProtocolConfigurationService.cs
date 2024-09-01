@@ -47,7 +47,7 @@ namespace _1RM.Service
                 Directory.CreateDirectory(AppPathHelper.Instance.ProtocolRunnerDirPath);
             Load(AppPathHelper.Instance.ProtocolRunnerDirPath);
         }
-        
+
 
         private void Load(string protocolFolderName)
         {
@@ -61,32 +61,6 @@ namespace _1RM.Service
             ProtocolConfigs.Add(Telnet.ProtocolName, InitProtocol(protocolFolderName, new Telnet(), new KittyRunner(Telnet.ProtocolName), $"Built-in KiTTY"));
             ProtocolConfigs.Add(SFTP.ProtocolName, InitProtocol(protocolFolderName, new SFTP(), new InternalDefaultRunner(SFTP.ProtocolName), $"Built-in SFTP"));
             ProtocolConfigs.Add(FTP.ProtocolName, InitProtocol(protocolFolderName, new FTP(), new InternalDefaultRunner(FTP.ProtocolName), $"Built-in FTP"));
-
-
-            //// custom protocol
-            //var di = new DirectoryInfo(protocolFolderName);
-            //{
-            //    var customs = new Dictionary<string, ProtocolSettings>();
-            //    foreach (var fi in di.GetFiles("*.json"))
-            //    {
-            //        var protocolName = fi.Name.Replace(fi.Extension, "");
-            //        // remove existed protocol
-            //        if (ProtocolConfigs.Any(x => string.Equals(protocolName, x.Key, StringComparison.CurrentCultureIgnoreCase)))
-            //            continue;
-            //        // remove special protocol
-            //        if (CustomProtocolBlackList.Any(x => string.Equals(protocolName, x, StringComparison.CurrentCultureIgnoreCase)))
-            //            continue;
-            //        var c = LoadConfig(protocolFolderName, protocolName);
-            //        if (c != null)
-            //        {
-            //            customs.Add(protocolName, c);
-            //        }
-            //    }
-            //    foreach (var custom in customs)
-            //    {
-            //        ProtocolConfigs.Add(custom.Key, custom.Value);
-            //    }
-            //}
 
 
             // add macros to ExternalRunner
@@ -216,6 +190,23 @@ namespace _1RM.Service
                             ExePath = @"C:\Program Files (x86)\WinSCP\WinSCP.exe",
                             Arguments = @"sftp://%1RM_USERNAME%:%1RM_PASSWORD%@%1RM_HOSTNAME%:%1RM_PORT%",
                             ArgumentsForPrivateKey = @"sftp://%1RM_USERNAME%@%1RM_HOSTNAME%:%1RM_PORT% /privatekey=%1RM_PRIVATE_KEY_PATH%",
+                        });
+                }
+                if (SSH.ProtocolName == protocolName)
+                {
+                    if (c.Runners.All(x => x.Name != "Putty"))
+                        c.Runners.Add(new ExternalRunnerForSSH("Putty", protocolName)
+                        {
+                            ExePath = @"D:\PuTTY.exe",
+                            Arguments = @"-ssh %1RM_HOSTNAME% -P %1RM_PORT% -l %1RM_USERNAME% -pw %1RM_PASSWORD% -%SSH_VERSION% -cmd ""%STARTUP_AUTO_COMMAND%""",
+                            ArgumentsForPrivateKey = @"-w 1 new-tab --title ""%1RM_HOSTNAME%"" --suppressApplicationTitle plink -ssh %1RM_HOSTNAME% -P %1RM_PORT% -%SSH_VERSION% -C -X -no-antispoof -l %1RM_USERNAME% -i %1RM_PRIVATE_KEY_PATH%",
+                        });
+                    if (c.Runners.All(x => x.Name != "Windows Terminal"))
+                        c.Runners.Add(new ExternalRunnerForSSH("Windows Terminal", protocolName)
+                        {
+                            ExePath = @"wt.exe",
+                            Arguments = @"-w 1 new-tab --title ""%1RM_HOSTNAME%"" --suppressApplicationTitle plink -ssh %1RM_HOSTNAME% -P %1RM_PORT% -%SSH_VERSION% -C -X -no-antispoof -l %1RM_USERNAME% -pw %1RM_PASSWORD%",
+                            ArgumentsForPrivateKey = @"-w 1 new-tab --title ""%1RM_HOSTNAME%"" --suppressApplicationTitle plink -ssh %1RM_HOSTNAME% -P %1RM_PORT% -%SSH_VERSION% -C -X -no-antispoof -l %1RM_USERNAME% -i %1RM_PRIVATE_KEY_PATH%",
                         });
                 }
             }
